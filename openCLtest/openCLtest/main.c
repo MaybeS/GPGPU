@@ -16,84 +16,43 @@
 
 #endif
 
+#define NO_ERR (0)
 #define MEM_SIZE (128)
+#define BUFFER_SIZE (256)
 #define MAX_SOURCE_SIZE (0x100000)
 
 int main(int argc, char * argv[])
 {
-	cl_device_id device_id = NULL;
-	cl_context context = NULL;
-	cl_command_queue command_queue = NULL;
-	cl_mem memobj = NULL;
-	cl_program program = NULL;
-	cl_kernel kernel = NULL;
-	cl_platform_id platform_id = NULL;
-	cl_uint ret_num_devices;
-	cl_uint ret_num_platforms;
-	cl_int ret;
+	cl_int err = NO_ERR, size;
+	cl_platform_id platform;  
+	cl_device_id * devices;
+	cl_uint platfor_num, device_num;
 
-	char string[MEM_SIZE];
+	char buffer[BUFFER_SIZE];
 
-	FILE *fp;
-	char fileName[] = "./test.cl";
-	char *source_str;
-	size_t source_size;
+	err += clGetPlatformIDs(1, &platform, &platfor_num);
+	printf("openCL Platform detected: %d\n", platfor_num);
 
-	/* Load the source code containing the kernel*/
-	fp = fopen(fileName, "r");
-	if (!fp) {
-		fprintf(stderr, "Failed to load kernel.\n");
-		exit(1);
+	err += clGetPlatformInfo(platform, CL_PLATFORM_NAME, BUFFER_SIZE, buffer, &size);
+	printf("Platform name: %s\n", buffer);
+
+	err += clGetPlatformInfo(platform, CL_PLATFORM_PROFILE, BUFFER_SIZE, buffer, &size);
+	printf("Platform profile: %s\n", buffer);
+
+	err += clGetPlatformInfo(platform, CL_PLATFORM_VERSION, BUFFER_SIZE, buffer, &size);
+	printf("Platform version: %s\n", buffer);
+
+	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, 0, &device_num);
+	printf("Devices detected: %d\n", device_num);
+
+	devices = (cl_device_id *)malloc(sizeof(cl_device_id) * device_num);
+	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, device_num, devices, &device_num);
+	for (int device_index = 0; device_index < device_num; device_index++)
+	{
+		err += clGetDeviceInfo(devices[device_index], CL_DEVICE_NAME, 512, buffer, &size);
+		printf("Device%d name: %s\n", device_index, buffer);
 	}
-	source_str = (char*)malloc(MAX_SOURCE_SIZE);
-	source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
-	fclose(fp);
 
-	/* Get Platform and Device Info */
-	ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-	ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);
-
-	/* Create OpenCL context */
-	context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
-
-	/* Create Command Queue */
-	command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-
-	/* Create Memory Buffer */
-	memobj = clCreateBuffer(context, CL_MEM_READ_WRITE, MEM_SIZE * sizeof(char), NULL, &ret);
-
-	/* Create Kernel Program from the source */
-	program = clCreateProgramWithSource(context, 1, (const char **)&source_str, (const size_t *)&source_size, &ret);
-
-	/* Build Kernel Program */
-	ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-
-	/* Create OpenCL Kernel */
-	kernel = clCreateKernel(program, "main", &ret);
-
-	/* Set OpenCL Kernel Parameters */
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memobj);
-
-	/* Execute OpenCL Kernel */
-	ret = clEnqueueTask(command_queue, kernel, 0, NULL, NULL);
-
-	/* Copy results from the memory buffer */
-	ret = clEnqueueReadBuffer(command_queue, memobj, CL_TRUE, 0,
-		MEM_SIZE * sizeof(char), string, 0, NULL, NULL);
-
-	/* Display Result */
-	puts(string);
-
-	/* Finalization */
-	ret = clFlush(command_queue);
-	ret = clFinish(command_queue);
-	ret = clReleaseKernel(kernel);
-	ret = clReleaseProgram(program);
-	ret = clReleaseMemObject(memobj);
-	ret = clReleaseCommandQueue(command_queue);
-	ret = clReleaseContext(context);
-
-	free(source_str);
 
 	return 0;
 }
