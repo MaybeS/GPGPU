@@ -62,11 +62,11 @@ int main(int argc, char * argv[])
 	err += clGetPlatformInfo(platform, CL_PLATFORM_VERSION, BUFFER_SIZE, buffer, &size);
 	printf("Platform version: %s\n", buffer);
 
-	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 0, 0, &device_num);
+	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, 0, &device_num);
 	printf("Devices detected: %d\n", device_num);
 
 	devices = (cl_device_id *)malloc(sizeof(cl_device_id) * device_num);
-	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, device_num, devices, &device_num);
+	err += clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, device_num, devices, &device_num);
 	for (_index = 0; _index < device_num; _index++)
 	{
 		err += clGetDeviceInfo(devices[_index], CL_DEVICE_NAME, BUFFER_SIZE, buffer, &size);
@@ -100,6 +100,7 @@ int main(int argc, char * argv[])
 	err += clBuildProgram(program, device_num, devices, NULL, NULL, NULL);
 
 	cl_kernel kernel = clCreateKernel(program, "hello", &err);
+	kernel = clCreateKernel(program, "test", &err);
 
 	cl_mem memory = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, BUFFER_SIZE, buffer, &size);
 	err += clSetKernelArg(kernel, 0, sizeof(cl_mem), &memory);
