@@ -1,16 +1,19 @@
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
 
-__constant char hw[] = "Hello OpenCL!\n";
-
-__kernel void hello(__global char * out)
+__kernel void hello(__global char* string)
 {
-    size_t tid = get_global_id(0);
-    out[tid] = hw[tid];
-}
-
-
-__kernel void test (__global char * out)
-{
-	size_t uid = get_user_id(0);
-	out [uid] = hw[uid];
+	string[0] = 'H';
+	string[1] = 'e';
+	string[2] = 'l';
+	string[3] = 'l';
+	string[4] = 'o';
+	string[5] = ',';
+	string[6] = ' ';
+	string[7] = 'W';
+	string[8] = 'o';
+	string[9] = 'r';
+	string[10] = 'l';
+	string[11] = 'd';
+	string[12] = '!';
+	string[13] = '\0';
 }
