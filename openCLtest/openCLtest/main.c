@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-#ifdef __APPLE__ || MACOSX
+#ifdef linux || __APPLE__ || MACOSX
 	#include <opencl/opencl.h>
-	
+	#include <unistd.h>
+
 #else
 	#include <CL\opencl.h>
 	#pragma warning ( disable : 4996 )
@@ -55,31 +57,29 @@ char * file_read(const char * path, size_t * size)
 	return file_text;
 }
 
-int shrCompareFet(const cl_float * reference, const cl_float * data, const size_t len)
+int shrCompareFet(const float * reference, const float * data, const size_t len)
 {
 	for (int i = 0; i < len; i++)
-		if (reference[i] - data[i])
-			return 0;
+		if (reference[i] - data[i] > 0.0001)
+			printf("%d: err: %f\n",i , reference[i] - data[i]);
 	return 1;
 }
-void shrFillArray(cl_float * data, cl_int size)
+void shrFillArray(float *data, int size)
 {
-	const cl_float scale = 1.0f / (cl_float)RAND_MAX;
+	const float scale = 1.0f / (float)RAND_MAX;
 	for (int i = 0; i < size; i++)
 		data[i] = scale * rand();
 }
-size_t shrRoundUp(cl_int group_size, cl_int global_size)
+size_t shrRoundUp(int group_size, int global_size)
 {
-	cl_int r = global_size % group_size;
-	if (!r)
-		return global_size;
+	if (global_size % group_size)
+		return global_size + group_size - global_size % group_size;
 	else
-		return global_size + group_size - r;
+		return global_size;
 }
 
 int main(int argc, char * argv[])
 {
-	srand(0);
 	cl_int err = NO_ERR, size = 0;
 	cl_uint platform_num = 0, device_num = 0, device_num_temp = 0;
 	size_t _index, __index, _temp;
@@ -167,50 +167,60 @@ int main(int argc, char * argv[])
 
 			char * kernel_source = file_read("./test.cl", &size), result_string[MEM_SIZE];
 			size_t kernel_source_size = size;
-			printf("==src==\n%s\==end==\n", kernel_source);
+
 			cl_context context = clCreateContext(NULL, 1, &devices[input].device , NULL, NULL, &err);
 			cl_command_queue queue = clCreateCommandQueue(context, devices[input].device, 0, &err);
-			cl_mem memory_object = clCreateBuffer(context, CL_MEM_READ_WRITE, BUFFER_SIZE, buffer, &size);
 			cl_program program = clCreateProgramWithSource(context, 1,(const char **)&kernel_source, &kernel_source_size, &err);
-			err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
-
+			//err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
+			
+			err |= clBuildProgram(program, 0, &devices[input].device, NULL, NULL, NULL);
 			cl_kernel kernel = clCreateKernel(program, "DotProduct", &err);
-			cl_int NmEle = 1277944;
+
+			cl_int NmEle;
+			do {
+				printf("\tinput size(over 1024): ");
+				scanf("%d", &NmEle);
+			} while (NmEle < 1024);
+
 			cl_int szLocalSize = 256, szGlobalSize = shrRoundUp((int)szLocalSize, NmEle);
+
 			void *arg_0 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
 				*arg_1 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
-				*arg_2 = (void*)malloc(sizeof(cl_float) * szGlobalSize),
-				*result = (void*)malloc(sizeof(cl_float) * NmEle);
-			shrFillArray((cl_float*)arg_0, 4 * NmEle);
-			shrFillArray((cl_float*)arg_1, 4 * NmEle);
+				*arg_2 = (void*)malloc(sizeof(cl_float) * szGlobalSize);
+			shrFillArray((float*)arg_0, 4 * NmEle);
+			shrFillArray((float*)arg_1, 4 * NmEle);
+
+			printf("\t%d vectors created!\n\tdot product calculating...\t", szGlobalSize);
+			_sleep(0);
+			__int64 nStartcount;
+			_asm rdtsc
+			_asm lea ebx, nStartcount
+			_asm mov dword ptr[ebx], eax
+			_asm mov dword ptr[ebx + 4], edx
 
 			cl_mem mem_arg_0 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
 			cl_mem mem_arg_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
-			cl_mem mem_arg_2 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize, NULL, &err);
+			cl_mem mem_arg_2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * szGlobalSize, NULL, &err);
+
 			err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mem_arg_0);
 			err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&mem_arg_1);
 			err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&mem_arg_2);
-			err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&NmEle);
+			err |= clSetKernelArg(kernel, 3, sizeof(cl_int), (void *)&NmEle);
 
 			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_0, 0, NULL, NULL);
-			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_1, 0, NULL, NULL);
+			err |= clEnqueueWriteBuffer(queue, mem_arg_1, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_1, 0, NULL, NULL);
 
 			err |= clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &szGlobalSize, &szLocalSize, 0, NULL, NULL);
 
 			err |= clEnqueueReadBuffer(queue, mem_arg_2, CL_TRUE, 0, sizeof(cl_float) * szGlobalSize, arg_2, 0, NULL, NULL);
 
-			for (int i = 0, j = 0; i < NmEle; i++)
-			{
-				((cl_float*)result)[i] = 0.0f;
-				for (int k = 0; k < 4; k++, j++)
-					((cl_float*)result)[i] += ((cl_float*)arg_0)[j] * ((cl_float*)arg_1)[j];
-			}
+			__int64 nEndCount;
+			_asm rdtsc
+			_asm lea ebx, nEndCount
+			_asm mov dword ptr [ebx], eax
+			_asm mov dword ptr [ebx+4], edx
 
-			if (shrCompareFet((const cl_float *)result, (const cl_float*)arg_2, (size_t)NmEle))
-				printf("success\n");
-
-			//err |= clEnqueueTask(queue, kernel, 0, NULL, NULL);
-			//err |= clEnqueueReadBuffer(queue, memory_object, CL_TRUE, 0, MEM_SIZE * sizeof(char), result_string, 0, NULL, NULL);
+			printf("success\n\texecution time: %lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
 
 			err |= clFlush(queue);
 			err |= clFlush(queue);
@@ -218,10 +228,17 @@ int main(int argc, char * argv[])
 			err |= clFinish(queue);
 			err |= clReleaseKernel(kernel);
 			err |= clReleaseProgram(program);
-			err |= clReleaseMemObject(memory_object);
+
+			err |= clReleaseMemObject(mem_arg_0);
+			err |= clReleaseMemObject(mem_arg_1);
+			err |= clReleaseMemObject(mem_arg_2);
+
 			err |= clReleaseCommandQueue(queue);
 			err |= clReleaseContext(context);
 
+			free(arg_0);
+			free(arg_1);
+			free(arg_2);
 			free(kernel_source);
 		}
 		else if (!(input + 1))
