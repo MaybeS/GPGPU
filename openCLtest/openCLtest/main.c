@@ -44,12 +44,12 @@ char * file_read(const char * path, size_t * size)
 	FILE * file = fopen(path, "rb");
 	char * file_text;
 
-	fseek(file, 1, SEEK_END);
+	fseek(file, 0, SEEK_END);
 	(*size) = ftell(file);
-	fseek(file, 0, SEEK_SET);
+	rewind(file);
 
-	file_text = (char*)malloc(sizeof(char) * (*size));
-	fread(file_text, sizeof(char), (*size), file);
+	file_text = (char*)malloc(sizeof(char) * (*size) + sizeof(char));
+	(*size) = fread(file_text, sizeof(char), (*size), file);
 	fclose(file);
 
 	return file_text;
@@ -141,25 +141,33 @@ int main(int argc, char * argv[])
 		{
 			printf("%s-%s selected.\n", platform_info[devices[input].platform].name, devices[input].name);
 
-			cl_context context = clCreateContext(NULL, 1, devices[input].device , NULL, NULL, &err);
+			char * kernel_source = file_read("./test.cl", &size), result_string[MEM_SIZE];
+			size_t kernel_source_size = size;
 
-			char * kernel_source = file_read("./test.cl", &size);
-
-			cl_program program = clCreateProgramWithSource(context, 1, &kernel_source, &size, &err);
-			err += clBuildProgram(program, device_num, devices, NULL, NULL, NULL);
+			cl_context context = clCreateContext(NULL, 1, &devices[input].device , NULL, NULL, &err);
+			cl_command_queue queue = clCreateCommandQueue(context, devices[input].device, 0, &err);
+			cl_mem memory_object = clCreateBuffer(context, CL_MEM_READ_WRITE, BUFFER_SIZE, buffer, &size);
+			cl_program program = clCreateProgramWithSource(context, 1,(const char **)&kernel_source, &kernel_source_size, &err);
+			err += clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
 
 			cl_kernel kernel = clCreateKernel(program, "hello", &err);
-			kernel = clCreateKernel(program, "test", &err);
+			err += clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memory_object);
 
-			cl_mem memory = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, BUFFER_SIZE, buffer, &size);
-			err += clSetKernelArg(kernel, 0, sizeof(cl_mem), &memory);
+			err += clEnqueueTask(queue, kernel, 0, NULL, NULL);
+			err += clEnqueueReadBuffer(queue, memory_object, CL_TRUE, 0, MEM_SIZE * sizeof(char), result_string, 0, NULL, NULL);
+			puts(result_string);
 
-			cl_command_queue queue = clCreateCommandQueue(context, devices[input].device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
+			err += clFlush(queue);
+			err += clFlush(queue);
+			err += clFinish(queue);
+			err += clFinish(queue);
+			err += clReleaseKernel(kernel);
+			err += clReleaseProgram(program);
+			err += clReleaseMemObject(memory_object);
+			err += clReleaseCommandQueue(queue);
+			err += clReleaseContext(context);
 
-			err += clEnqueueNDRangeKernel(queue, kernel, 1, 0, &size, 0, 0, 0, 0);
-			err = clFinish(queue);
-
-			cl_int ret = 0;
+			free(kernel_source);
 		}
 		else if (!(input + 1))
 			break;

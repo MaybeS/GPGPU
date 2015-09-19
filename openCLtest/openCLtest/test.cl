@@ -1,4 +1,4 @@
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+#pragma OPENCL EXTENSION cl_khr_icd  : enable
 
 __kernel void hello(__global char* string)
 {
