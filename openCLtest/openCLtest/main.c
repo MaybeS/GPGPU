@@ -54,8 +54,32 @@ char * file_read(const char * path, size_t * size)
 
 	return file_text;
 }
+
+int shrCompareFet(const cl_float * reference, const cl_float * data, const size_t len)
+{
+	for (int i = 0; i < len; i++)
+		if (reference[i] - data[i])
+			return 0;
+	return 1;
+}
+void shrFillArray(cl_float * data, cl_int size)
+{
+	const cl_float scale = 1.0f / (cl_float)RAND_MAX;
+	for (int i = 0; i < size; i++)
+		data[i] = scale * rand();
+}
+size_t shrRoundUp(cl_int group_size, cl_int global_size)
+{
+	cl_int r = global_size % group_size;
+	if (!r)
+		return global_size;
+	else
+		return global_size + group_size - r;
+}
+
 int main(int argc, char * argv[])
 {
+	srand(0);
 	cl_int err = NO_ERR, size = 0;
 	cl_uint platform_num = 0, device_num = 0, device_num_temp = 0;
 	size_t _index, __index, _temp;
@@ -67,8 +91,8 @@ int main(int argc, char * argv[])
 	
 	char buffer[BUFFER_SIZE];
 
-	err += clGetPlatformIDs(0, NULL, &platform_num);
-	err += clGetPlatformIDs(platform_num, platform, NULL);
+	err |= clGetPlatformIDs(0, NULL, &platform_num);
+	err |= clGetPlatformIDs(platform_num, platform, NULL);
 	printf("openCL Platform detected: %d\n", platform_num);
 
 	platform_info = (cl_platform*)realloc(platform_info, sizeof(cl_platform) * platform_num);
@@ -76,32 +100,32 @@ int main(int argc, char * argv[])
 	{
 		platform_info[_index].platform = platform[_index];
 
-		err += clGetPlatformInfo(platform[_index], CL_PLATFORM_NAME, BUFFER_SIZE, buffer, &size);
+		err |= clGetPlatformInfo(platform[_index], CL_PLATFORM_NAME, BUFFER_SIZE, buffer, &size);
 		printf("Platform%d name: %s\n", _index, buffer);
 		platform_info[_index].name = (char*)malloc(sizeof(char) * strlen(buffer) + sizeof(char));
 		strcpy(platform_info[_index].name, buffer);
 
-		err += clGetPlatformInfo(platform[_index], CL_PLATFORM_VENDOR, BUFFER_SIZE, buffer, &size);
+		err |= clGetPlatformInfo(platform[_index], CL_PLATFORM_VENDOR, BUFFER_SIZE, buffer, &size);
 		printf("\tPlatform%d vender: %s\n", _index, buffer);
 		platform_info[_index].vender = (char*)malloc(sizeof(char) * strlen(buffer) + sizeof(char));
 		strcpy(platform_info[_index].vender, buffer);
 
-		err += clGetPlatformInfo(platform[_index], CL_PLATFORM_PROFILE, BUFFER_SIZE, buffer, &size);
+		err |= clGetPlatformInfo(platform[_index], CL_PLATFORM_PROFILE, BUFFER_SIZE, buffer, &size);
 		printf("\tPlatform%d profile: %s\n", _index, buffer);
 		platform_info[_index].profile = (char*)malloc(sizeof(char) * strlen(buffer) + sizeof(char));
 		strcpy(platform_info[_index].profile, buffer);
 
-		err += clGetPlatformInfo(platform[_index], CL_PLATFORM_VERSION, BUFFER_SIZE, buffer, &size);
+		err |= clGetPlatformInfo(platform[_index], CL_PLATFORM_VERSION, BUFFER_SIZE, buffer, &size);
 		printf("\tPlatform%d version: %s\n", _index, buffer);
 		platform_info[_index].version = (char*)malloc(sizeof(char) * strlen(buffer) + sizeof(char));
 		strcpy(platform_info[_index].version, buffer);
 
-		err += clGetDeviceIDs(platform[_index], CL_DEVICE_TYPE_ALL, 0, 0, &device_num_temp);
+		err |= clGetDeviceIDs(platform[_index], CL_DEVICE_TYPE_ALL, 0, 0, &device_num_temp);
 		printf("\tin Platform%d, Devices detected: %d\n", _index, device_num_temp);
 		platform_info[_index].device_num = device_num_temp;
 
 		device = (cl_device_id*)malloc(sizeof(cl_device_id) * device_num_temp);
-		err += clGetDeviceIDs(platform[_index], CL_DEVICE_TYPE_ALL, device_num_temp, device, &device_num_temp);
+		err |= clGetDeviceIDs(platform[_index], CL_DEVICE_TYPE_ALL, device_num_temp, device, &device_num_temp);
 
 		devices = (cl_device*)realloc(devices, sizeof(cl_device) * (device_num += device_num_temp));
 
@@ -109,10 +133,10 @@ int main(int argc, char * argv[])
 		{
 			char * device_name_temp = (char*)malloc(sizeof(char) * BUFFER_SIZE);
 
-			err += clGetDeviceInfo(device[__index], CL_DEVICE_NAME, BUFFER_SIZE, device_name_temp, &size);
+			err |= clGetDeviceInfo(device[__index], CL_DEVICE_NAME, BUFFER_SIZE, device_name_temp, &size);
 			printf("\t\tDevice%d name: %s\n", __index, device_name_temp);
 
-			err += clGetDeviceInfo(device[__index], CL_DEVICE_COMPILER_AVAILABLE, BUFFER_SIZE, buffer, &size);
+			err |= clGetDeviceInfo(device[__index], CL_DEVICE_COMPILER_AVAILABLE, BUFFER_SIZE, buffer, &size);
 			if (buffer[0] == CL_TRUE)
 				printf("\t\tDevice%d support kernel compile!\n", __index);
 			else
@@ -143,29 +167,60 @@ int main(int argc, char * argv[])
 
 			char * kernel_source = file_read("./test.cl", &size), result_string[MEM_SIZE];
 			size_t kernel_source_size = size;
-
+			printf("==src==\n%s\==end==\n", kernel_source);
 			cl_context context = clCreateContext(NULL, 1, &devices[input].device , NULL, NULL, &err);
 			cl_command_queue queue = clCreateCommandQueue(context, devices[input].device, 0, &err);
 			cl_mem memory_object = clCreateBuffer(context, CL_MEM_READ_WRITE, BUFFER_SIZE, buffer, &size);
 			cl_program program = clCreateProgramWithSource(context, 1,(const char **)&kernel_source, &kernel_source_size, &err);
-			err += clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
+			err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
 
-			cl_kernel kernel = clCreateKernel(program, "hello", &err);
-			err += clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&memory_object);
+			cl_kernel kernel = clCreateKernel(program, "DotProduct", &err);
+			cl_int NmEle = 1277944;
+			cl_int szLocalSize = 256, szGlobalSize = shrRoundUp((int)szLocalSize, NmEle);
+			void *arg_0 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
+				*arg_1 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
+				*arg_2 = (void*)malloc(sizeof(cl_float) * szGlobalSize),
+				*result = (void*)malloc(sizeof(cl_float) * NmEle);
+			shrFillArray((cl_float*)arg_0, 4 * NmEle);
+			shrFillArray((cl_float*)arg_1, 4 * NmEle);
 
-			err += clEnqueueTask(queue, kernel, 0, NULL, NULL);
-			err += clEnqueueReadBuffer(queue, memory_object, CL_TRUE, 0, MEM_SIZE * sizeof(char), result_string, 0, NULL, NULL);
-			puts(result_string);
+			cl_mem mem_arg_0 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
+			cl_mem mem_arg_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
+			cl_mem mem_arg_2 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize, NULL, &err);
+			err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mem_arg_0);
+			err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&mem_arg_1);
+			err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&mem_arg_2);
+			err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&NmEle);
 
-			err += clFlush(queue);
-			err += clFlush(queue);
-			err += clFinish(queue);
-			err += clFinish(queue);
-			err += clReleaseKernel(kernel);
-			err += clReleaseProgram(program);
-			err += clReleaseMemObject(memory_object);
-			err += clReleaseCommandQueue(queue);
-			err += clReleaseContext(context);
+			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_0, 0, NULL, NULL);
+			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_1, 0, NULL, NULL);
+
+			err |= clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &szGlobalSize, &szLocalSize, 0, NULL, NULL);
+
+			err |= clEnqueueReadBuffer(queue, mem_arg_2, CL_TRUE, 0, sizeof(cl_float) * szGlobalSize, arg_2, 0, NULL, NULL);
+
+			for (int i = 0, j = 0; i < NmEle; i++)
+			{
+				((cl_float*)result)[i] = 0.0f;
+				for (int k = 0; k < 4; k++, j++)
+					((cl_float*)result)[i] += ((cl_float*)arg_0)[j] * ((cl_float*)arg_1)[j];
+			}
+
+			if (shrCompareFet((const cl_float *)result, (const cl_float*)arg_2, (size_t)NmEle))
+				printf("success\n");
+
+			//err |= clEnqueueTask(queue, kernel, 0, NULL, NULL);
+			//err |= clEnqueueReadBuffer(queue, memory_object, CL_TRUE, 0, MEM_SIZE * sizeof(char), result_string, 0, NULL, NULL);
+
+			err |= clFlush(queue);
+			err |= clFlush(queue);
+			err |= clFinish(queue);
+			err |= clFinish(queue);
+			err |= clReleaseKernel(kernel);
+			err |= clReleaseProgram(program);
+			err |= clReleaseMemObject(memory_object);
+			err |= clReleaseCommandQueue(queue);
+			err |= clReleaseContext(context);
 
 			free(kernel_source);
 		}
@@ -176,9 +231,6 @@ int main(int argc, char * argv[])
 		int temp_c;
 		while ((temp_c = getchar()) != EOF && temp_c != '\n');
 	 } while(1);
-
-
-
 
 	return 0;
 }
