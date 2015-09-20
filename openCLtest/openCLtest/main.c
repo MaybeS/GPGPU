@@ -165,7 +165,7 @@ int main(int argc, char * argv[])
 		{
 			printf("%s-%s selected.\n", platform_info[devices[input].platform].name, devices[input].name);
 
-			char * kernel_source = file_read("./test.cl", &size), result_string[MEM_SIZE];
+			char * kernel_source = file_read("./dotproduct.cl", &size), result_string[MEM_SIZE];
 			size_t kernel_source_size = size;
 
 			cl_context context = clCreateContext(NULL, 1, &devices[input].device , NULL, NULL, &err);
