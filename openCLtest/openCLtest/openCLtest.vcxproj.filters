@@ -24,4 +24,53 @@
       <Filter>소스 파일</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\CL\cl_d3d11_ext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_ext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_gl.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_gl_ext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_platform.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\opencl.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_d3d9_ext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\CL\cl_d3d10_ext.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\x86\cudadevrt.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+    <Library Include="lib\x86\cudart.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+    <Library Include="lib\x86\cudart_static.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+    <Library Include="lib\x86\nvcuvid.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+    <Library Include="lib\x86\OpenCL.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+    <Library Include="lib\x86\cuda.lib">
+      <Filter>헤더 파일</Filter>
+    </Library>
+  </ItemGroup>
 </Project>

@@ -89,7 +89,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\Develope\Workspace\CP 15-2\GPGPU\openCLtest\openCLtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./include/;./lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,6 +121,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\Develope\Workspace\CP 15-2\GPGPU\openCLtest\openCLtest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,6 +153,25 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="dotproduct.cl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\CL\cl.h" />
+    <ClInclude Include="include\CL\cl_d3d10_ext.h" />
+    <ClInclude Include="include\CL\cl_d3d11_ext.h" />
+    <ClInclude Include="include\CL\cl_d3d9_ext.h" />
+    <ClInclude Include="include\CL\cl_ext.h" />
+    <ClInclude Include="include\CL\cl_gl.h" />
+    <ClInclude Include="include\CL\cl_gl_ext.h" />
+    <ClInclude Include="include\CL\cl_platform.h" />
+    <ClInclude Include="include\CL\opencl.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\x86\cuda.lib" />
+    <Library Include="lib\x86\cudadevrt.lib" />
+    <Library Include="lib\x86\cudart.lib" />
+    <Library Include="lib\x86\cudart_static.lib" />
+    <Library Include="lib\x86\nvcuvid.lib" />
+    <Library Include="lib\x86\OpenCL.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

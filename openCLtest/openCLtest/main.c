@@ -1,7 +1,9 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 
 #ifdef linux || __APPLE__ || MACOSX
 	#include <opencl/opencl.h>
@@ -191,7 +193,7 @@ int main(int argc, char * argv[])
 			shrFillArray((float*)arg_1, 4 * NmEle);
 
 			printf("\t%d vectors created!\n\tdot product calculating...\t", szGlobalSize);
-			_sleep(0);
+
 			__int64 nStartcount;
 			_asm rdtsc
 			_asm lea ebx, nStartcount
@@ -219,7 +221,6 @@ int main(int argc, char * argv[])
 			_asm lea ebx, nEndCount
 			_asm mov dword ptr [ebx], eax
 			_asm mov dword ptr [ebx+4], edx
-
 			printf("success\n\texecution time: %lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
 
 			err |= clFlush(queue);
