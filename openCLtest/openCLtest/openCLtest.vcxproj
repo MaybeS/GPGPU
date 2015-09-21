@@ -154,25 +154,6 @@
   <ItemGroup>
     <None Include="dotproduct.cl" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="include\CL\cl.h" />
-    <ClInclude Include="include\CL\cl_d3d10_ext.h" />
-    <ClInclude Include="include\CL\cl_d3d11_ext.h" />
-    <ClInclude Include="include\CL\cl_d3d9_ext.h" />
-    <ClInclude Include="include\CL\cl_ext.h" />
-    <ClInclude Include="include\CL\cl_gl.h" />
-    <ClInclude Include="include\CL\cl_gl_ext.h" />
-    <ClInclude Include="include\CL\cl_platform.h" />
-    <ClInclude Include="include\CL\opencl.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="lib\x86\cuda.lib" />
-    <Library Include="lib\x86\cudadevrt.lib" />
-    <Library Include="lib\x86\cudart.lib" />
-    <Library Include="lib\x86\cudart_static.lib" />
-    <Library Include="lib\x86\nvcuvid.lib" />
-    <Library Include="lib\x86\OpenCL.lib" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
