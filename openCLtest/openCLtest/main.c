@@ -59,20 +59,20 @@ char * file_read(const char * path, size_t * size)
 	return file_text;
 }
 
-int shrCompareFet(const float * reference, const float * data, const size_t len)
+int shrCompareFet(const double * reference, const double * data, const size_t len)
 {
-	for (int i = 0; i < len; i++)
+	for (size_t i = 0; i < len; i++)
 		if (reference[i] - data[i] > 0.0001)
 			printf("%d: err: %f\n",i , reference[i] - data[i]);
 	return 1;
 }
-void shrFillArray(float *data, int size)
+void shrFillArray(double *data, size_t size)
 {
-	const float scale = 1.0f / (float)RAND_MAX;
-	for (int i = 0; i < size; i++)
+	const double scale = 1.0 / (double)RAND_MAX;
+	for (size_t i = 0; i < size; i++)
 		data[i] = scale * rand();
 }
-size_t shrRoundUp(int group_size, int global_size)
+size_t shrRoundUp(size_t group_size, size_t global_size)
 {
 	if (global_size % group_size)
 		return global_size + group_size - global_size % group_size;
@@ -175,22 +175,29 @@ int main(int argc, char * argv[])
 			cl_program program = clCreateProgramWithSource(context, 1,(const char **)&kernel_source, &kernel_source_size, &err);
 			//err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
 			
-			err |= clBuildProgram(program, 0, &devices[input].device, NULL, NULL, NULL);
+			err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
 			cl_kernel kernel = clCreateKernel(program, "DotProduct", &err);
 
-			cl_int NmEle;
+			long t_ele;
 			do {
 				printf("\tinput size(over 1024): ");
-				scanf("%d", &NmEle);
-			} while (NmEle < 1024);
+				scanf("%ld", &t_ele);
+			} while (t_ele < 1024);
 
-			cl_int szLocalSize = 256, szGlobalSize = shrRoundUp((int)szLocalSize, NmEle);
+			cl_long NmEle = t_ele, szLocalSize = 256, szGlobalSize = shrRoundUp((size_t)szLocalSize, NmEle);
 
-			void *arg_0 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
-				*arg_1 = (void*)malloc(sizeof(cl_float4) * szGlobalSize),
-				*arg_2 = (void*)malloc(sizeof(cl_float) * szGlobalSize);
-			shrFillArray((float*)arg_0, 4 * NmEle);
-			shrFillArray((float*)arg_1, 4 * NmEle);
+			void *arg_0 = (void*)malloc(sizeof(cl_double4) * szGlobalSize),
+				*arg_1 = (void*)malloc(sizeof(cl_double4) * szGlobalSize),
+				*arg_2 = (void*)malloc(sizeof(cl_double) * szGlobalSize);
+
+			if (arg_0 == NULL || arg_1 == NULL || szGlobalSize * 4 > SIZE_MAX)
+			{
+				printf("\tout of size.\n");
+				continue;
+			}
+
+			shrFillArray((double*)arg_0, 4 * NmEle);
+			shrFillArray((double*)arg_1, 4 * NmEle);
 
 			printf("\t%d vectors created!\n\tdot product calculating...\t", szGlobalSize);
 
@@ -200,28 +207,36 @@ int main(int argc, char * argv[])
 			_asm mov dword ptr[ebx], eax
 			_asm mov dword ptr[ebx + 4], edx
 
-			cl_mem mem_arg_0 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
-			cl_mem mem_arg_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_float) * szGlobalSize * 4, NULL, &err);
-			cl_mem mem_arg_2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_float) * szGlobalSize, NULL, &err);
+			cl_mem mem_arg_0 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_double4) * szGlobalSize, NULL, &err);
+			cl_mem mem_arg_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(cl_double4) * szGlobalSize, NULL, &err);
+			cl_mem mem_arg_2 = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_double) * szGlobalSize, NULL, &err);
 
 			err |= clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&mem_arg_0);
 			err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&mem_arg_1);
 			err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&mem_arg_2);
-			err |= clSetKernelArg(kernel, 3, sizeof(cl_int), (void *)&NmEle);
+			err |= clSetKernelArg(kernel, 3, sizeof(cl_long), (void *)&NmEle);
 
-			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_0, 0, NULL, NULL);
-			err |= clEnqueueWriteBuffer(queue, mem_arg_1, CL_FALSE, 0, sizeof(cl_float) * szGlobalSize * 4, arg_1, 0, NULL, NULL);
+			err |= clEnqueueWriteBuffer(queue, mem_arg_0, CL_FALSE, 0, sizeof(cl_double4) * szGlobalSize, arg_0, 0, NULL, NULL);
+			err |= clEnqueueWriteBuffer(queue, mem_arg_1, CL_FALSE, 0, sizeof(cl_double4) * szGlobalSize, arg_1, 0, NULL, NULL);
 
 			err |= clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &szGlobalSize, &szLocalSize, 0, NULL, NULL);
 
-			err |= clEnqueueReadBuffer(queue, mem_arg_2, CL_TRUE, 0, sizeof(cl_float) * szGlobalSize, arg_2, 0, NULL, NULL);
+			err |= clEnqueueReadBuffer(queue, mem_arg_2, CL_TRUE, 0, sizeof(cl_double) * szGlobalSize, arg_2, 0, NULL, NULL);
 
 			__int64 nEndCount;
 			_asm rdtsc
 			_asm lea ebx, nEndCount
 			_asm mov dword ptr [ebx], eax
 			_asm mov dword ptr [ebx+4], edx
-			printf("success\n\texecution time: %lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
+
+			for (_index = 0; _index < 10; _index++)
+				if (((cl_double*)arg_2)[_index] < 0.00001)
+				{
+					printf("fail\n");
+					break;
+				}
+			if(_index == 10)
+				printf("success\n\texecution time: %.4lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
 
 			err |= clFlush(queue);
 			err |= clFlush(queue);
@@ -236,7 +251,7 @@ int main(int argc, char * argv[])
 
 			err |= clReleaseCommandQueue(queue);
 			err |= clReleaseContext(context);
-
+				
 			free(arg_0);
 			free(arg_1);
 			free(arg_2);
