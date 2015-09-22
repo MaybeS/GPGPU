@@ -15,6 +15,7 @@
 
 	#ifdef _WIN64
 		#pragma comment (lib,"lib/x64/opencl.lib")
+
 	#else
 		#pragma comment (lib,"lib/x86/opencl.lib")
 	#endif
