@@ -174,10 +174,12 @@ int main(int argc, char * argv[])
 			cl_context context = clCreateContext(NULL, 1, &devices[input].device , NULL, NULL, &err);
 			cl_command_queue queue = clCreateCommandQueue(context, devices[input].device, 0, &err);
 			cl_program program = clCreateProgramWithSource(context, 1,(const char **)&kernel_source, &kernel_source_size, &err);
-			//err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
-			
+
 			err |= clBuildProgram(program, 1, &devices[input].device, NULL, NULL, NULL);
 			cl_kernel kernel = clCreateKernel(program, "DotProduct", &err);
+
+			if (err)
+				continue;
 
 			long t_ele;
 			do {
