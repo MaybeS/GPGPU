@@ -179,7 +179,12 @@ int main(int argc, char * argv[])
 			cl_kernel kernel = clCreateKernel(program, "DotProduct", &err);
 
 			if (err)
+			{
+				printf("\tkernel creation fail.\n");
 				continue;
+			}
+			else
+				printf("\tkernel created!\n");
 
 			long t_ele;
 			do {
@@ -239,7 +244,7 @@ int main(int argc, char * argv[])
 					break;
 				}
 			if(_index == 10)
-				printf("success\n\texecution time: %.4lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
+				printf("success.\n\texecution time: %.4lf(ms)\n", (double)(nEndCount - nStartcount) / 2000000.0);
 
 			err |= clFlush(queue);
 			err |= clFlush(queue);
