@@ -5,6 +5,8 @@ int main(int argc, char * argv[])
 {
 	printf("=======================OpenCL_Compiler=====================\n");
 	cl_int err = NO_ERR;
+	//argc++;
+	//test
 	if (argc < 2)
 		show_help();
 	else
@@ -12,6 +14,8 @@ int main(int argc, char * argv[])
 		platforms = (cl_platform*)malloc(sizeof(cl_platform));
 		devices = (cl_device *)malloc(sizeof(cl_device));
 		err |= initilize(&platforms, &platform_count, &devices, &device_count);
+		//Compile(&platforms, &platform_count, &devices, &device_count, 0);
+		//for test
 		if (err == NO_ERR)
 		{
 			cl_int index;
@@ -47,7 +51,7 @@ int main(int argc, char * argv[])
 						printf("target file: %s\n",argv[index]);
 						option_t = atoi(argv[index]);
 						option = 0;
-					}
+					} 
 					if (option >= l) {//save log with location
 						printf("log save: %s\n", argv[index]);
 						free(option_l);
@@ -64,6 +68,7 @@ int main(int argc, char * argv[])
 			}
 			else if(options[(int)log2(t)] == CL_TRUE && option_t != PRE_DEFINITION)
 			{
+				Compile(platforms, platform_count, devices, device_count,option_t);
 
 			}
 			else
