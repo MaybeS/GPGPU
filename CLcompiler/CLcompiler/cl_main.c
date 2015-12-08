@@ -68,7 +68,7 @@ int main(int argc, char * argv[])
 			}
 			else if(options[(int)log2(t)] == CL_TRUE && option_t != PRE_DEFINITION)
 			{
-				Compile(platforms, platform_count, devices, device_count,option_t);
+				Compile(&platforms, &platform_count, &devices, &device_count,option_t);
 
 			}
 			else

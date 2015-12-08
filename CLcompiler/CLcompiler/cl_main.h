@@ -6,20 +6,21 @@
 #include <math.h>
 #include <time.h>
 #pragma warning (disable : 4067)
+
 #ifdef linux || __APPLE__ || MACOSX
-#include <opencl/opencl.h>
-#include <unistd.h>
+	#include <opencl/opencl.h>
+	#include <unistd.h>
 
 #else
-#include <CL\opencl.h>
-#pragma warning ( disable : 4996 )
+	#include <CL\opencl.h>
+	#pragma warning ( disable : 4996 )
 
-#ifdef _WIN64
-#pragma comment (lib,"lib/x64/opencl.lib")
+	#ifdef _WIN64
+		#pragma comment (lib,"lib/x64/opencl.lib")
 
-#else
-#pragma comment (lib,"lib/x86/opencl.lib")
-#endif
+	#else
+		#pragma comment (lib,"lib/x86/opencl.lib")
+	#endif
 
 #endif
 
